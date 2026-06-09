@@ -520,7 +520,7 @@ const STATUS_TAGS = ["回答済み", "LIVE回答"];
 const CATEGORY_TAGS = {json.dumps(other_tags, ensure_ascii=False)};
 
 // === State ===
-let activeTags = new Set();
+let activeTags = new Set(["回答済み"]);
 let searchQuery = "";
 
 // === Init ===
