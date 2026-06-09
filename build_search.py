@@ -10,6 +10,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 INPUT_FILE = "qa_pairs.json"
 OUTPUT_FILE = "search.html"
+# Published copy served to users. Kept in sync with OUTPUT_FILE automatically
+# so we never forget to copy search.html -> index.html after a rebuild.
+PUBLISH_FILE = "index.html"
 
 # Tag definitions: keyword -> tag name
 TAG_RULES = {
@@ -698,10 +701,12 @@ def main():
 
     html = build_html(qa_pairs)
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(html)
+    # Write both the working file and the published copy in one pass
+    for path in (OUTPUT_FILE, PUBLISH_FILE):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"Generated: {path}")
 
-    print(f"Generated: {OUTPUT_FILE}")
     print(f"File size: {len(html) // 1024} KB")
 
 
