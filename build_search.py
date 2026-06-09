@@ -20,6 +20,7 @@ TAG_RULES = {
     "股関節": "股関節",
     "膝": "膝",
     "足首": "足首",
+    "アーカイブ": "アーカイブ",
     "お尻": "お尻",
     "臀筋": "お尻",
     "腰": "腰",
@@ -69,6 +70,7 @@ TAG_COLORS = {
     "股関節": "#e74c3c",
     "膝": "#e67e22",
     "足首": "#f39c12",
+    "アーカイブ": "#8e44ad",
     "お尻": "#d35400",
     "腰": "#c0392b",
     "肩": "#2980b9",
@@ -145,6 +147,11 @@ def build_html(qa_pairs):
         [t for t in tag_counts if t not in status_tags],
         key=lambda t: -tag_counts[t]
     )
+
+    # Place アーカイブ just before お尻 regardless of count
+    if "アーカイブ" in other_tags and "お尻" in other_tags:
+        other_tags.remove("アーカイブ")
+        other_tags.insert(other_tags.index("お尻"), "アーカイブ")
 
     # Answered count
     answered = sum(1 for qa in qa_pairs if "回答済み" in qa["tags"])
@@ -298,6 +305,32 @@ body {{
   display: flex;
   align-items: flex-start;
   gap: 8px;
+}}
+.qa-question-body {{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}}
+.qa-question-text {{
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}}
+.qa-question-text.expanded {{
+  display: block;
+  overflow: visible;
+}}
+.expand-btn {{
+  align-self: flex-start;
+  font-size: 0.75rem;
+  color: #e67e22;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
 }}
 .qa-question::before {{
   content: "Q";
@@ -539,14 +572,14 @@ function renderTags() {{
 
   statusEl.innerHTML = STATUS_TAGS.map(tag => {{
     const count = QA_DATA.filter(qa => qa.tags.includes(tag)).length;
-    return `<button class="tag-btn" data-tag="${{tag}}" onclick="toggleTag('${{tag}}')">
+    return `<button class="tag-btn ${{activeTags.has(tag) ? 'active' : ''}}" data-tag="${{tag}}" onclick="toggleTag('${{tag}}')">
       ${{tag}} <span class="count">${{count}}</span>
     </button>`;
   }}).join("");
 
   catEl.innerHTML = CATEGORY_TAGS.map(tag => {{
     const count = QA_DATA.filter(qa => qa.tags.includes(tag)).length;
-    return `<button class="tag-btn" data-tag="${{tag}}" onclick="toggleTag('${{tag}}')">
+    return `<button class="tag-btn ${{activeTags.has(tag) ? 'active' : ''}}" data-tag="${{tag}}" onclick="toggleTag('${{tag}}')">
       ${{tag}} <span class="count">${{count}}</span>
     </button>`;
   }}).join("");
@@ -656,7 +689,10 @@ function renderResults() {{
     return `
       <div class="qa-card">
         <div class="qa-question" onclick="toggleAnswer(this.parentElement.querySelector('.qa-answer-toggle'))">
-          ${{highlightText(qa.question, 200)}}
+          <div class="qa-question-body" onclick="event.stopPropagation()">
+            <span class="qa-question-text" id="q-text-${{i}}">${{highlightText(qa.question)}}</span>
+            <button class="expand-btn" onclick="toggleExpand(this, 'q-text-${{i}}')">もっと見る ▼</button>
+          </div>
         </div>
         <div class="qa-tags">${{tagHtml}}</div>
         <div class="qa-meta">
@@ -670,6 +706,25 @@ function renderResults() {{
         </a>
       </div>`;
   }}).join("");
+
+  // Hide expand buttons for questions that fit within 3 lines
+  setTimeout(checkExpandButtons, 0);
+}}
+
+function toggleExpand(btn, textId) {{
+  const el = document.getElementById(textId);
+  const isExpanded = el.classList.contains('expanded');
+  el.classList.toggle('expanded');
+  btn.textContent = isExpanded ? 'もっと見る ▼' : '閉じる ▲';
+}}
+
+function checkExpandButtons() {{
+  document.querySelectorAll('.qa-question-text').forEach(el => {{
+    if (el.scrollHeight <= el.clientHeight + 2) {{
+      const btn = el.nextElementSibling;
+      if (btn) btn.style.display = 'none';
+    }}
+  }});
 }}
 
 function toggleAnswer(btn) {{
